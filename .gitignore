@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+aeskeydb.bin
+*.cia
+seeddb.bin
