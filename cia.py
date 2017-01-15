@@ -48,7 +48,7 @@ class CIA:
         NOTE: Only reads whole sectors!
         """
         self.f.seek(self.contentOff+sectorno*512)
-        if not self.ticket.encrypted:
+        if not self.tmd.contents[self.getContentNo(sectorno)]["type"]&1:
             #Just read the unencrypted data
             return self.f.read(sectors*512)
         iv=b''

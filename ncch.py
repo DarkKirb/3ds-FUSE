@@ -50,9 +50,12 @@ class NCCH:
         return bytes(ctr)
 
     def doExHeader(self):
-        ctr=self.getCtr(1)
-        data=self.cia.read(self.offset+1,(self.exheadersize//512)+1)
-        self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
+        data=self.cia.read(self.offset+1,(self.exheadersize//512))
+        if self.flags[7]&0x04:
+            self.exheader=data
+        else:
+            ctr=self.getCtr(1)
+            self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
 
     def read(self,sectorno,sectors=1):
         pass
