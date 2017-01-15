@@ -22,7 +22,6 @@ def cryptoBytestring(ip, data, keyslot,algo, iv=b'\x00\x00\x00\x00\x00\x00\x00\x
     sock.connect((ip,8081))
     sock.send(meta)
     bufsize = struct.unpack('<I',sock.recv(4))[0]
-    print("Data packet size is {bufsize} bytes".format(bufsize=bufsize))
     ofs=0
     outdata=b''
     while ofs<len(data):
@@ -44,7 +43,6 @@ def cryptofile(ip, infile, outfile, keyslot,algo, iv=b'\x00\x00\x00\x00\x00\x00\
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((ip,8081))
     bufsize = struct.unpack('<I',sock.recv(4))[0]
-    print("Data packet size is {bufsize} bytes".format(bufsize=bufsize))
     ofs=0
     while ofs<size:
         if ofs+bufsize < size:

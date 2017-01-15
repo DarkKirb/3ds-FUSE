@@ -2,6 +2,7 @@ import struct
 import crypto
 import ticket
 import tmd
+import ncch
 from Crypto.Cipher import AES
 def align(x,y):
     mask = ~(y-1)
@@ -25,6 +26,11 @@ class CIA:
         self.tmd=tmd.TMD(self.f)
         self.ticket.decryptTitleKey(self.tmd.tid)
         self.f.seek(self.contentOff)
+        self.ncchs=[]
+        off=0
+        for nc in range(len(self.tmd.contents)):
+            self.ncchs.append(ncch.NCCH(f,self,off//512))
+            off+=self.tmd.contents[nc]["size"]
     def getContentNo(self,sector):
         byte=sector*512
         for f in self.tmd.contents:

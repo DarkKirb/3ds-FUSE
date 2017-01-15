@@ -1,11 +1,18 @@
 import cia
 import struct
 import crypto
+class NCCHfile:
+    def __init__(self, f):
+        self.ncch=NCCH(f,self)
+    def read(self,sectorno,sectors):
+        f.seek(sectorno*512)
+        return f.read(sectors*512)
 class NCCH:
-    def __init__(self, fname):
-        self.f=open(fname,"rb")
-        self.cia=cia.CIA(self.f)
-        header=self.cia.read(0)
+    def __init__(self, f,cia,offset=0):
+        self.f=f
+        self.cia=cia
+        self.offset=offset
+        header=self.cia.read(offset+0)
         self.header=header
         if b'NCCH' != header[0x100:0x104]:
             raise ValueError("This is not a valid NCCH file!")
@@ -44,7 +51,7 @@ class NCCH:
 
     def doExHeader(self):
         ctr=self.getCtr(1)
-        data=self.cia.read(1,(self.exheadersize//512)+1)
+        data=self.cia.read(self.offset+1,(self.exheadersize//512)+1)
         self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
 
     def read(self,sectorno,sectors=1):
