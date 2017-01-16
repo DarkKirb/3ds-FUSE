@@ -1,6 +1,7 @@
 import struct
+import hashlib
 class TMD:
-    def __init__(self, f):#
+    def __init__(self, f):
         sigtype=struct.unpack(">I",f.read(4))[0]-0x10000
         skip=[0x23C,0x13C,0x7C,0x23C,0x13C,0x7C]
         f.read(skip[sigtype])
@@ -13,19 +14,29 @@ class TMD:
         f.read(0x31)
         self.accessRights,self.tversion,self.contentCount=struct.unpack(">IHH",f.read(8))
         self.contents=[]
+        self.bootContent=struct.unpack(">I",f.read(4))[0]
+        sha=f.read(0x20) #SHA256 of content info record
+        contentInfoRecord=f.read(64*0x24)
+        contentChunkRecord=[f.read(0x30) for x in range(self.contentCount)]
+        checksha=hashlib.sha256(contentInfoRecord).digest()
+        if sha != checksha:
+            print("WARNING: TMD content info record hash mismatch!")
         for c in range(64):
-            f.read(0x24)
-            pass
-        self.bootContent=struct.unpack(">Hxx",f.read(4))
-        f.read(0x20) #skip sha256 hash
-        f.seek(loc)
-        for c in range(64):
+            record=contentInfoRecord[:0x24]
+            contentInfoRecord=contentInfoRecord[0x24:]
             content={}
-            content["indexOffset"],content["commandCount"]=struct.unpack(">HH",f.read(4))
-            f.read(0x20)
+            content["indexOffset"],content["commandCount"]=struct.unpack(">HH",record[:4])
+            sha=record[4:]
             if c >= self.contentCount:
                 continue
+            checkstr=b""
+            for s in contentChunkRecord[c:c+content["commandCount"]]:
+                checkstr+=s
+            checksha=hashlib.sha256(checkstr).digest()
+            if content["commandCount"] and checksha != sha:
+                print("WARNING: TMD content chunk record hash mismatch!")
             self.contents.append(content)
-        for c in range(min(self.contentCount,64)):
-            self.contents[c]["cid"],self.contents[c]["index"],self.contents[c]["type"],self.contents[c]["size"]=struct.unpack(">IHHQ",f.read(16))
-            f.read(0x20)
+        self.contentHashes=[]
+        for no,c in enumerate(contentChunkRecord):
+            self.contents[no]["cid"],self.contents[no]["index"],self.contents[no]["type"],self.contents[no]["size"]=struct.unpack(">IHHQ",c[:0x10])
+            self.contentHashes.append(c[0x10:])

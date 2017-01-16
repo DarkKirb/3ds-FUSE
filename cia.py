@@ -3,6 +3,8 @@ import crypto
 import ticket
 import tmd
 import ncch
+import hashlib
+import sys
 from Crypto.Cipher import AES
 def align(x,y):
     mask = ~(y-1)
@@ -31,6 +33,23 @@ class CIA:
         for nc in range(len(self.tmd.contents)):
             self.ncchs.append(ncch.NCCH(f,self,off//512))
             off+=self.tmd.contents[nc]["size"]
+    def hashCheck(self):
+        print("Doing hash checks. This may take a while")
+        self.f.seek(self.contentOff)
+        secno=0
+        for no,content in enumerate(self.tmd.contents):
+            sha=hashlib.sha256()
+            for cno in range(content["size"]//512):
+                sha.update(self.read(secno))
+                if not cno % 2048:
+                    print(".",end="")
+                    sys.stdout.flush()
+                secno+=1
+            print()
+            sha=sha.digest()
+            if sha != self.tmd.contentHashes[no]:
+                print("WARNING: Section",no,"hash mismatch!")
+
     def getContentNo(self,sector):
         byte=sector*512
         for f in self.tmd.contents:
@@ -53,7 +72,7 @@ class CIA:
             return self.f.read(sectors*512)
         iv=b''
         if not self.contentSector(sectorno):
-            iv=self.tmd.contents[self.getContentNo(sectorno)]["index"].to_bytes(16,byteorder="little")
+            iv=self.tmd.contents[self.getContentNo(sectorno)]["index"].to_bytes(2,byteorder="big")+b'\x00'*14
         else:
             self.f.seek((self.contentOff+sectorno*512)-16)
             iv=self.f.read(16)

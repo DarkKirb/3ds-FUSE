@@ -1,6 +1,7 @@
 import cia
 import struct
 import crypto
+import hashlib
 class NCCHfile:
     def __init__(self, f):
         self.ncch=NCCH(f,self)
@@ -19,6 +20,7 @@ class NCCH:
         self.contentSize,self.partID,self.makerCode,self.version,self.programID=struct.unpack("<IQHHxxxxQ",header[0x104:0x120])
         self.productCode=header[0x150:0x160]
         print("Product code:",self.productCode.decode("UTF-8"))
+        self.exheaderhash=header[0x160:0x180]
         self.exheadersize=struct.unpack("<I",header[0x180:0x184])[0]
         self.flags=struct.unpack("<BBBBBBBB",header[0x188:0x190])
         self.plainregionOff,self.plainregionSize,self.logoregionOff,self.logoregionSize,self.exefsOff,self.exefsSize,self.exefsHash,self.romfsOff,self.romfsSize,self.romfsHash=struct.unpack("<IIIIIIIxxxxIIIxxxx",header[0x190:0x1C0])
@@ -51,11 +53,17 @@ class NCCH:
 
     def doExHeader(self):
         data=self.cia.read(self.offset+1,(self.exheadersize//512))
+        if not self.exheadersize:
+            return
         if self.flags[7]&0x04:
             self.exheader=data
         else:
             ctr=self.getCtr(1)
             self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
+        #Hash checking...
+        if self.exheaderhash != hashlib.sha256(self.exheader).digest():
+            print("WARNING: ExHeader hash mismatch!")
+            print(self.exheaderhash,hashlib.sha256(data).digest())
 
     def read(self,sectorno,sectors=1):
         pass
