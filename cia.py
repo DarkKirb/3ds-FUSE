@@ -18,6 +18,7 @@ class CIA:
         self.tmdOff=align(self.tikOff+self.tikSize,64)
         self.contentOff=align(self.tmdOff+self.tmdSize,64)
         self.metaOff=align(self.contentOff+self.contentSize,64)
+        self.contentIndex=self.f.read(0x2000)
         for e,f,g in [("Header:",0,self.headerSize),("CA chain",self.cachainOff,self.cachainSize),("Ticket:",self.tikOff,self.tikSize),("TMD:",self.tmdOff,self.tmdSize),("Content:",self.contentOff,self.contentSize),("Metadata:",self.metaOff,self.metaSize)]:
             print(e,hex(f),hex(g))
         self.f.seek(self.cachainOff)
@@ -29,6 +30,7 @@ class CIA:
         self.ticket.decryptTitleKey(self.tmd.tid)
         self.f.seek(self.contentOff)
         self.ncchs=[]
+        self.size=self.metaOff+self.metaSize
         off=0
         for nc in range(len(self.tmd.contents)):
             self.ncchs.append(ncch.NCCH(f,self,off//512))
@@ -62,6 +64,18 @@ class CIA:
             if byte < f["size"]:
                 return byte//512
             byte-=f["size"]
+    def getDecHeader(self):
+        header=struct.pack("<IHHIIIIQ",self.headerSize,self.type,self.version,self.cachainSize,self.tikSize,self.tmdSize,self.metaSize,self.contentSize)
+        header+=self.contentIndex
+        #Decrypting ticket and tmd
+        header+=bytes(self.cachainOff-len(header))
+        header+=self.cachain
+        header+=bytes(self.tikOff-len(header))
+        header+=self.ticket.decrypt()
+        header+=bytes(self.tmdOff-len(header))
+        header+=self.tmd.decrypt()
+        header+=bytes(self.contentOff-len(header))
+        return header
     def read(self,sectorno,sectors=1):
         """
         NOTE: Only reads whole sectors!

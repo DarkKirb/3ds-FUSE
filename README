@@ -1,1 +1,13 @@
 Before running anything of this, please have "aeskeydb.bin" with the eshop 0x3D keyY and the seeddb.bin in your current directory.
+
+Directory layout:
+
+CIA:
+
+/
+/decrypted.cia - Decrypted CIA file
+/tmd           - TMD
+/ticket        - Ticket
+/0.cxi         - Content 0 - for CIAs containing CXIs only!
+/0.cfa         - Content 0 - for CIAs not containing CXIs!
+/1.cfa         - Content 1 - Might not exist!

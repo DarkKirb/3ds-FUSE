@@ -10,11 +10,12 @@ class Ticket:
         self.pubkey=f.read(0x3C)
         self.version,self.caCrlVersion,self.signerCrlVersion=struct.unpack("<BBB",f.read(3))
         self.titlekey=f.read(0x10)
+        self.enckey=bytes(self.titlekey)
         f.read(1)
         self.tickid,self.cid,self.tid,self.tikTitleVersion,self.licenseType,self.keyYindex,self.eshopAID,self.audit=struct.unpack("<LILxxHxxxxxxxBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxIxB",f.read(73))
         f.read(0x42)
         self.limits=f.read(0x40)
-        f.read(0xAC)
+        self.contentIndex=f.read(0xAC)
         self.encrypted=self.titlekey != b'\xFF'*16
     def decryptTitleKey(self,tid):
         if self.encrypted:
@@ -22,3 +23,16 @@ class Ticket:
             keyY=aeskeydb.getKey(0x3D)[2]
             iv=tid.to_bytes(8, byteorder='big')+b'\x00'*8
             self.titlekey=crypto.cryptoBytestring("192.168.2.105",self.titlekey,0x7D,1,iv,keyY)
+    def decrypt(self):
+        header=struct.pack(">I",0x10004)
+        header+=bytes(0x13C)
+        header+=self.issuer
+        header+=self.pubkey
+        header+=struct.pack("<BBB",self.version,self.caCrlVersion,self.signerCrlVersion)
+        header+=self.enckey
+        header+=b'\x00'
+        header+=struct.pack("<LILxxHxxxxxxxBBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxIxB",self.tickid,self.cid,self.tid,self.tikTitleVersion,self.licenseType,self.keyYindex,self.eshopAID,self.audit)
+        header+=bytes(0x42)
+        header+=self.limits
+        header+=self.contentIndex
+        return header

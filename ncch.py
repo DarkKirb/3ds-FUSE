@@ -52,7 +52,7 @@ class NCCH:
         return bytes(ctr)
 
     def doExHeader(self):
-        data=self.cia.read(self.offset+1,(self.exheadersize//512))
+        data=self.cia.read(self.offset+1,(2048//512))
         if not self.exheadersize:
             return
         if self.flags[7]&0x04:
@@ -61,7 +61,7 @@ class NCCH:
             ctr=self.getCtr(1)
             self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
         #Hash checking...
-        if self.exheaderhash != hashlib.sha256(self.exheader).digest():
+        if self.exheaderhash != hashlib.sha256(self.exheader[:self.exheadersize]).digest():
             print("WARNING: ExHeader hash mismatch!")
             print(self.exheaderhash,hashlib.sha256(data).digest())
 
