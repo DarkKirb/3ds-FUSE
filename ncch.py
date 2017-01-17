@@ -9,11 +9,10 @@ class NCCHfile:
         f.seek(sectorno*512)
         return f.read(sectors*512)
 class NCCH:
-    def __init__(self, f,cia,offset=0):
+    def __init__(self, f,ip):
+        self.ip=ip
         self.f=f
-        self.cia=cia
-        self.offset=offset
-        header=self.cia.read(offset+0)
+        header=self.cia.read(0)
         self.header=header
         if b'NCCH' != header[0x100:0x104]:
             raise ValueError("This is not a valid NCCH file!")
@@ -52,18 +51,19 @@ class NCCH:
         return bytes(ctr)
 
     def doExHeader(self):
-        data=self.cia.read(self.offset+1,(2048//512))
+        data=self.read(1,(2048//512))
         if not self.exheadersize:
             return
         if self.flags[7]&0x04:
             self.exheader=data
         else:
             ctr=self.getCtr(1)
-            self.exheader=crypto.cryptoBytestring("192.168.2.105",data,0x6C,3,ctr,self.header[:0x10])
+            self.exheader=crypto.cryptoBytestring(self.ip,data,0x6C,3,ctr,self.header[:0x10])
         #Hash checking...
         if self.exheaderhash != hashlib.sha256(self.exheader[:self.exheadersize]).digest():
             print("WARNING: ExHeader hash mismatch!")
             print(self.exheaderhash,hashlib.sha256(data).digest())
 
     def read(self,sectorno,sectors=1):
-        pass
+        f.seek(sectorno*512)
+        return f.read(sectors*512)

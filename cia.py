@@ -2,7 +2,6 @@ import struct
 import crypto
 import ticket
 import tmd
-import ncch
 import hashlib
 import sys
 from Crypto.Cipher import AES
@@ -10,7 +9,8 @@ def align(x,y):
     mask = ~(y-1)
     return (x+(y-1))&mask
 class CIA:
-    def __init__(self, f):
+    def __init__(self, f, ip):
+        self.ip = ip
         self.f=f
         self.headerSize,self.type,self.version,self.cachainSize,self.tikSize,self.tmdSize,self.metaSize,self.contentSize=struct.unpack("<IHHIIIIQ",self.f.read(0x20))
         self.cachainOff=align(self.headerSize,64)
@@ -24,17 +24,13 @@ class CIA:
         self.f.seek(self.cachainOff)
         self.cachain=self.f.read(self.cachainSize)
         self.f.seek(self.tikOff)
-        self.ticket=ticket.Ticket(self.f)
+        self.ticket=ticket.Ticket(self.f, self.ip)
         self.f.seek(self.tmdOff)
         self.tmd=tmd.TMD(self.f)
         self.ticket.decryptTitleKey(self.tmd.tid)
         self.f.seek(self.contentOff)
-        self.ncchs=[]
         self.size=self.metaOff+self.metaSize
         off=0
-        for nc in range(len(self.tmd.contents)):
-            self.ncchs.append(ncch.NCCH(f,self,off//512))
-            off+=self.tmd.contents[nc]["size"]
     def hashCheck(self):
         print("Doing hash checks. This may take a while")
         self.f.seek(self.contentOff)

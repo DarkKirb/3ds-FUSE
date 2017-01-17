@@ -2,7 +2,8 @@ import struct
 import crypto
 import aeskeydb
 class Ticket:
-    def __init__(self, f):
+    def __init__(self, f, ip):
+        self.ip = ip
         sigtype=struct.unpack(">I",f.read(4))[0]-0x10000
         skip=[0x23C,0x13C,0x7C,0x23C,0x13C,0x7C]
         f.read(skip[sigtype])
@@ -22,7 +23,7 @@ class Ticket:
             #Decrypt title key
             keyY=aeskeydb.getKey(0x3D)[2]
             iv=tid.to_bytes(8, byteorder='big')+b'\x00'*8
-            self.titlekey=crypto.cryptoBytestring("192.168.2.105",self.titlekey,0x7D,1,iv,keyY)
+            self.titlekey=crypto.cryptoBytestring(self.ip,self.titlekey,0x7D,1,iv,keyY)
     def decrypt(self):
         header=struct.pack(">I",0x10004)
         header+=bytes(0x13C)

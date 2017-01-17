@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import cia
 
 import logging
@@ -5,15 +6,16 @@ from errno import ENOENT, EIO
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
-
+import subprocess
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 class CIA(LoggingMixIn, Operations):
     'Read only filesystem for CIA files.'
-    def __init__(self,fname):
+    def __init__(self,fname,mount,ip):
+        self.ip=ip
         self.files={}
         self.f = open(fname,"rb")
-        self.cia = cia.CIA(self.f)
+        self.cia = cia.CIA(self.f,ip)
         self.fd = 0
         now = time()
         self.files["/"] = dict(st_mode=(S_IFDIR | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2)
@@ -25,6 +27,11 @@ class CIA(LoggingMixIn, Operations):
             if no == 0:
                 ending=".cxi"
             self.files["/"+str(no)+ending]=dict(st_mode=(S_IFREG | 0o555),st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tmd.contents[no]["size"], st_blocks=(self.cia.tmd.contents[no]["size"]+511)//512)
+            self.files["/"+str(no)+"/"]=dict(st_mode=(S_IFDIR | 0o555),st_ctime=now,st_mtime=now, st_atime=now, st_nlink=2)
+            try:
+                subprocess.Popen(["./ncchfuse.py",mount+"/"+str(no)+ending,mount+"/"+str(no),self.ip])
+            except:
+                print("WARNING: Could not mount",str(no)+ending)
 
 
     def chmod(self,path,mode):
@@ -143,8 +150,8 @@ class CIA(LoggingMixIn, Operations):
     def release(self,path,fh):
         pass
 
-if len(argv) != 3:
-    print('usage: {name} <CIA> <mountpoint>'.format(argv[0]))
+if len(argv) != 4:
+    print('usage: {name} <CIA> <mountpoint> <3DS IP>'.format(name=argv[0]))
     exit(1)
 logging.basicConfig(level=logging.WARNING)
-fuse = FUSE(CIA(argv[1]),argv[2],foreground=True)
+fuse = FUSE(CIA(argv[1], argv[2], argv[3]),argv[2],foreground=True)
