@@ -18,6 +18,14 @@ class CIA(LoggingMixIn, Operations):
         now = time()
         self.files["/"] = dict(st_mode=(S_IFDIR | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2)
         self.files["/dec.cia"] = dict(st_mode=(S_IFREG | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.size, st_blocks=(self.cia.size+511)//512)
+        self.files["/ticket"] = dict(st_mode=(S_IFREG | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tikSize, st_blocks=(self.cia.tikSize+511)//512)
+        self.files["/tmd"] = dict(st_mode=(S_IFREG | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tmdSize, st_blocks=(self.cia.tmdSize+511)//512)
+        for no in range(self.cia.tmd.contentCount):
+            ending=".cfa"
+            if no == 0:
+                ending=".cxi"
+            self.files["/"+str(no)+ending]=dict(st_mode=(S_IFREG | 0o555),st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tmd.contents[no]["size"], st_blocks=(self.cia.tmd.contents[no]["size"]+511)//512)
+
 
     def chmod(self,path,mode):
         raise FuseOSError(EIO) #IT'S RO
@@ -46,10 +54,7 @@ class CIA(LoggingMixIn, Operations):
     def open(self,path,flags):
         self.fd += 1
         return self.fd
-
-    def read(self,path,size,offset,fh):
-        if not path == "/dec.cia":
-            raise FuseOSError(EIO)
+    def readDecCIA(self,path,size,offset):
         #Ok, read the decrypted CIA
         #If offset is before the actual contents, read that instead
         data=b''
@@ -71,6 +76,31 @@ class CIA(LoggingMixIn, Operations):
         #remove trailing data
         data=data[:size]
         return data
+    def readContent(self,path,size,offset,content):
+        start=self.cia.startSec(content)
+        data=self.cia.read((offset//512)+start,(size//512)+2)
+        data=data[offset%512:]
+        data=data[:size]
+        return data
+    def read(self,path,size,offset,fh):
+        if path == "/dec.cia":
+            return self.readDecCIA(path,size,offset)
+        if path == "/ticket":
+            data=self.cia.ticket.decrypt()
+            return data[offset:offset+size]
+        if path == "/tmd":
+            data=self.cia.tmd.decrypt()
+            return data[offset:offset+size]
+        for no in range(self.cia.tmd.contentCount):
+            ending=".cfa"
+            if no == 0:
+                ending=".cxi"
+            if path == "/"+str(no)+ending:
+                #Found it!
+                return self.readContent(path,size,offset,no)
+
+        raise FuseOSError(EIO)
+
 
     def readdir(self, path, fh):
         return ['.', '..'] + [x[1:] for x in self.files if x != '/']

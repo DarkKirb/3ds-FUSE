@@ -51,7 +51,12 @@ class CIA:
             sha=sha.digest()
             if sha != self.tmd.contentHashes[no]:
                 print("WARNING: Section",no,"hash mismatch!")
-
+    def startSec(self,cid):
+        byte=0
+        for f in self.tmd.contents:
+            if cid==f["index"]:
+                return byte//512
+            byte+=f["size"]
     def getContentNo(self,sector):
         byte=sector*512
         for f in self.tmd.contents:
