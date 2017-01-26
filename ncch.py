@@ -1,18 +1,12 @@
-import cia
+
 import struct
 import crypto
 import hashlib
-class NCCHfile:
-    def __init__(self, f):
-        self.ncch=NCCH(f,self)
-    def read(self,sectorno,sectors):
-        f.seek(sectorno*512)
-        return f.read(sectors*512)
 class NCCH:
     def __init__(self, f,ip):
         self.ip=ip
         self.f=f
-        header=self.cia.read(0)
+        header=self.f.read(512)
         self.header=header
         if b'NCCH' != header[0x100:0x104]:
             raise ValueError("This is not a valid NCCH file!")
@@ -28,42 +22,97 @@ class NCCH:
         self.cryptoSec3=self.flags[3]==0x0A
         self.cryptoSec4=self.flags[3]==0x0B
         self.cryptoFixkey=self.flags[7]&1
+        self.keyY=header[:16]
         self.doExHeader()
     def addCtr(self,ctr,val):
         c=int.from_bytes(ctr,byteorder="big")
         c+=val
         return c.to_bytes(16,byteorder="big")
-    def getCtr(self,id):
+    def getCtr(self):
         ctr=bytearray(16)
         if self.version == 1:
             for c,b in enumerate(self.partID.to_bytes(8,byteorder="little")):
                 ctr[c]=b
-            if id == 1:
-                ctr=self.addCtr(ctr,0x200)
-            elif id == 2:
-                ctr=self.addCtr(ctr,self.exefsOff*0x200)
-            elif id == 3:
-                ctr=self.addCtr(ctr,self.romfsOff*0x200)
+
         else:
             for c,b in enumerate(self.partID.to_bytes(8,byteorder="big")):
                 ctr[c]=b
-            ctr[8]=id
         return bytes(ctr)
 
+
+    def read(self,sectorno,sectors=1):
+        f=self.f
+        f.seek(sectorno*512)
+        decdata=b''
+        if sectorno == 0:
+            #Sector is unencrypted
+            data=f.read(512)
+
+            decdata+=data[:0x18F]+bytes([data[0x18F]|0x04])+data[0x190:]
+            if sectors == 1:
+                return decdata
+            sectorno+=1
+            sectors-=1
+        if sectorno >= 1 and sectorno < 5:
+            ctr=self.getCtr()
+            if self.version == 1:
+                ctr=self.addCtr(ctr,sectorno*32+512-32)
+            else:
+                ctr = ctr[:8] + b'\x01' + ctr[9:]
+                ctr=self.addCtr(ctr,sectorno*32-32)
+
+            #Sector is encrypted using keyslot 0x2C
+            csectors=min(sectors,4)
+            sectors-=csectors
+            data = f.read(csectors*512)
+            if self.flags[7]&0x04: #Except when it's decrypted
+                decdata += data
+            else:
+                decdata += crypto.cryptoBytestring(self.ip,data,0x6C,3,ctr,self.keyY)
+            if not sectors:
+                return decdata
+            sectorno+=csectors
+        ctr=self.getCtr()
+        print(sectorno)
+        if sectorno < self.exefsOff + self.exefsSize:
+            print("EXE")
+            #exefs
+            if self.version == 1:
+                ctr = self.addCtr(ctr,(sectorno-self.exefsOff)*32+self.exefsOff*512)
+            else:
+                ctr = ctr[:8] + b'\x02' + ctr[9:]
+                ctr=self.addCtr(ctr,(sectorno-self.exefsOff)*32)
+            overhang=sectors-self.exefsSize
+            if overhang>0:
+                return decdata + self.read(sectorno,self.exefsSize) + self.read(self.exefsOff+self.exefsSize,overhang)
+        else:
+            print("ROM")
+            #romfs
+            if self.version == 1:
+                ctr = self.addCtr(ctr,(sectorno-self.romfsOff)*32+self.romfsOff*512)
+            else:
+                ctr = ctr[:8] + b'\x03' + ctr[9:]
+                ctr=self.addCtr(ctr,(sectorno-self.romfsOff)*32)
+
+        print(ctr)
+        #Sectors are encrypted via multiple methods
+        data=f.read(sectors*512)
+        keyslot = 0x6C
+        if self.flags[3] == 0x01:
+            keyslot = 0x65
+        elif self.flags[3] == 0x0A:
+            keyslot = 0x58
+        elif self.flags[3] == 0x0B:
+            keyslot = 0x5B
+        print(keyslot)
+        decdata += crypto.cryptoBytestring(self.ip,data,keyslot,3,ctr,self.keyY)
+        return decdata
+
     def doExHeader(self):
-        data=self.read(1,(2048//512))
+        self.exheader=self.read(1,(2048//512))
         if not self.exheadersize:
             return
-        if self.flags[7]&0x04:
-            self.exheader=data
-        else:
-            ctr=self.getCtr(1)
-            self.exheader=crypto.cryptoBytestring(self.ip,data,0x6C,3,ctr,self.header[:0x10])
         #Hash checking...
         if self.exheaderhash != hashlib.sha256(self.exheader[:self.exheadersize]).digest():
             print("WARNING: ExHeader hash mismatch!")
-            print(self.exheaderhash,hashlib.sha256(data).digest())
-
-    def read(self,sectorno,sectors=1):
-        f.seek(sectorno*512)
-        return f.read(sectors*512)
+            print(self.exheaderhash,hashlib.sha256(self.exheader[:self.exheadersize]).digest())

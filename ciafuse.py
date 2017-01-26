@@ -27,11 +27,7 @@ class CIA(LoggingMixIn, Operations):
             if no == 0:
                 ending=".cxi"
             self.files["/"+str(no)+ending]=dict(st_mode=(S_IFREG | 0o555),st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tmd.contents[no]["size"], st_blocks=(self.cia.tmd.contents[no]["size"]+511)//512)
-            self.files["/"+str(no)+"/"]=dict(st_mode=(S_IFDIR | 0o555),st_ctime=now,st_mtime=now, st_atime=now, st_nlink=2)
-            try:
-                subprocess.Popen(["./ncchfuse.py",mount+"/"+str(no)+ending,mount+"/"+str(no),self.ip])
-            except:
-                print("WARNING: Could not mount",str(no)+ending)
+            #self.files["/"+str(no)+"/"]=dict(st_mode=(S_IFDIR | 0o555),st_ctime=now,st_mtime=now, st_atime=now, st_nlink=2)
 
 
     def chmod(self,path,mode):
@@ -154,4 +150,4 @@ if len(argv) != 4:
     print('usage: {name} <CIA> <mountpoint> <3DS IP>'.format(name=argv[0]))
     exit(1)
 logging.basicConfig(level=logging.WARNING)
-fuse = FUSE(CIA(argv[1], argv[2], argv[3]),argv[2],foreground=True)
+fuse = FUSE(CIA(argv[1], argv[2], argv[3]),argv[2],foreground=False)
