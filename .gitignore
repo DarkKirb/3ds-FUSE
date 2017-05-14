@@ -3,3 +3,4 @@ __pycache__/
 aeskeydb.bin
 *.cia
 seeddb.bin
+venv/
