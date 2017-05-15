@@ -1,7 +1,7 @@
 import struct
-import crypto
-import ticket
-import tmd
+from . import crypto
+from . import ticket
+from . import tmd
 import hashlib
 import sys
 from Crypto.Cipher import AES

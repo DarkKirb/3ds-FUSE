@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import cia
+from fuse_3ds import cia
 
 import logging
 from errno import ENOENT, EIO

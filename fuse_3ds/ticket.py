@@ -1,6 +1,6 @@
 import struct
-import crypto
-import aeskeydb
+from . import crypto
+from . import aeskeydb
 class Ticket:
     def __init__(self, f, ip):
         self.ip = ip

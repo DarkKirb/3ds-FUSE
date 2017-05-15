@@ -1,6 +1,6 @@
 
 import struct
-import crypto
+from . import crypto
 import hashlib
 class NCCH:
     def __init__(self, f,ip):

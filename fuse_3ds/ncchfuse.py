@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import ncch
+from fuse_3ds import ncch
 
 import logging
 from errno import ENOENT, EIO
