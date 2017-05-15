@@ -22,6 +22,7 @@ class NCCH:
         self.cryptoSec3=self.flags[3]==0x0A
         self.cryptoSec4=self.flags[3]==0x0B
         self.cryptoFixkey=self.flags[7]&1
+        self.nocrypto=self.flags[7]&0x4
         self.keyY=header[:16]
         self.doExHeader()
     def addCtr(self,ctr,val):
@@ -44,6 +45,8 @@ class NCCH:
         f=self.f
         f.seek(sectorno*512)
         decdata=b''
+        if self.nocrypto:
+            return f.read(sectors*512)
         if sectorno == 0:
             #Sector is unencrypted
             data=f.read(512)
