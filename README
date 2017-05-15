@@ -1,16 +1,46 @@
-Before running anything of this, please have "aeskeydb.bin" with the eshop 0x3D keyY and the seeddb.bin in your current directory.
 
-Directory layout:
+Requirements:
+- python3
+- fuse 2.9.7 or earlier(!)
+- fusepy (pip install fusepy)
+- A 3DS running 3ds_cryptserver
+- aeskeydb.bin (with eshop 0x3D keyY) in CWD
+- seeddb.bin in CWD
 
-CIA:
+Depending on your setup, you might be only able to use these scripts as root user.
 
+Usages:
+
+./ciafuse.py <file.cia> <mountpoint> <3DS IP>
+mountpoint:
 /
 /decrypted.cia - Decrypted CIA file
 /tmd           - TMD
 /ticket        - Ticket
-/0.cxi         - Content 0 - for CIAs containing CXIs only!
-/0.cfa         - Content 0 - for CIAs not containing CXIs!
+/0.cxi         - Content 0
 /1.cfa         - Content 1 - Might not exist!
 .
 .
 .
+
+./ncchfuse.py <file.cxi | file.cfa> <mountpoint> <3DS IP>
+mountpoint:
+/
+/decrypted.cxi/cfa - Decrypted NCCH
+/exefs.bin - ExeFS - only exists on CXIs
+/exheader.bin - Extended Header - optional
+/plainrgn.bin - Plain Region  - optional
+/logorgn.bin - Logo Region - optional
+/romfs.bin - RomFS - optional. Should always exist in cfa's
+
+./exefsfuse.py <exefs.bin> <mountpoint>
+./romfsfuse.py <romfs.bin> <mountpoint>
+
+EXAMPLES:
+
+Mounting the romfs of the CIA of Mario Kart 7:
+./ciafuse.py mk7.cia mount/ 192.168.2.104
+./ncchfuse.py mount/0.cxi mount/ 192.168.2.104
+./romfsfuse.py mount/romfs.bin mount/
+
+To unmount this, you have to run "umount" three times
