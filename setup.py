@@ -6,6 +6,6 @@ setup(name="3ds-fuse",
       author="Morten Delenk",
       author_email="morten@dark32.cf",
       packages=["fuse_3ds"],
-      scripts=["fuse_3ds/ciafuse.py","fuse_3ds/exefsfuse.py","fuse_3ds/ncchfuse.py","fuse_3ds/romfsfuse.py"],
+      scripts=["fuse_3ds/ciafuse.py","fuse_3ds/exefsfuse.py","fuse_3ds/ncchfuse.py","fuse_3ds/romfsfuse.py","fuse_3ds/3dsxfuse.py"],
       install_requires=["fusepy","pycryptodome"])
 
