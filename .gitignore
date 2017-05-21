@@ -4,3 +4,4 @@ aeskeydb.bin
 *.cia
 seeddb.bin
 venv/
+aeskeydb.yaml

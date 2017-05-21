@@ -11,11 +11,10 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 class NCCH(LoggingMixIn, Operations):
     'Read only filesystem for NCCH files.'
-    def __init__(self,fname,mount,ip):
-        self.ip=ip
+    def __init__(self,fname,mount):
         self.files={}
         self.f = open(fname,"rb")
-        self.ncch = ncch.NCCH(self.f,ip)
+        self.ncch = ncch.NCCH(self.f)
         self.type="cxi" if self.ncch.exefsSize else "cfa"
         self.fd = 0
         now = time()
@@ -128,8 +127,8 @@ class NCCH(LoggingMixIn, Operations):
     def release(self,path,fh):
         pass
 
-if len(argv) != 4:
-    print('usage: {name} <NCCH> <mountpoint> <3DS IP>'.format(name=argv[0]))
+if len(argv) != 3:
+    print('usage: {name} <NCCH> <mountpoint>'.format(name=argv[0]))
     exit(1)
-logging.basicConfig(level=logging.WARNING)
-fuse = FUSE(NCCH(argv[1], argv[2], argv[3]),argv[2],foreground=False)
+logging.basicConfig(level=logging.DEBUG)
+fuse = FUSE(NCCH(argv[1], argv[2]),argv[2],foreground=True)

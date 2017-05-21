@@ -1,5 +1,4 @@
 import struct
-from . import crypto
 from . import ticket
 from . import tmd
 import hashlib
@@ -9,8 +8,7 @@ def align(x,y):
     mask = ~(y-1)
     return (x+(y-1))&mask
 class CIA:
-    def __init__(self, f, ip):
-        self.ip = ip
+    def __init__(self, f):
         self.f=f
         self.headerSize,self.type,self.version,self.cachainSize,self.tikSize,self.tmdSize,self.metaSize,self.contentSize=struct.unpack("<IHHIIIIQ",self.f.read(0x20))
         self.cachainOff=align(self.headerSize,64)
@@ -24,7 +22,7 @@ class CIA:
         self.f.seek(self.cachainOff)
         self.cachain=self.f.read(self.cachainSize)
         self.f.seek(self.tikOff)
-        self.ticket=ticket.Ticket(self.f, self.ip)
+        self.ticket=ticket.Ticket(self.f)
         self.f.seek(self.tmdOff)
         self.tmd=tmd.TMD(self.f)
         self.ticket.decryptTitleKey(self.tmd.tid)

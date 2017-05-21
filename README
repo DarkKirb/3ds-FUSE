@@ -4,7 +4,7 @@ Requirements:
 - fuse 2.9.7 or earlier(!)
 - fusepy (pip install fusepy)
 - A 3DS running 3ds_cryptserver
-- aeskeydb.bin (with eshop 0x3D keyY) in CWD
+- aeskeydb.bin (with eshop 0x3D normal key) in home directory
 - seeddb.bin in CWD
 
 Depending on your setup, you might be only able to use these scripts as root user.
@@ -44,3 +44,15 @@ Mounting the romfs of the CIA of Mario Kart 7:
 ./romfsfuse.py mount/romfs.bin mount/
 
 To unmount this, you have to run "umount" three times
+
+-----------------------------------------------------
+aeskeydb.bin for local decryption
+
+Thanks to boot9strap, you can dump boot9+boot11+otp by holding start+select+x during boot. You can dump the aeskeys in those roms by running the script "genaeskeys.py". This will append all new keys to aeskeydb.bin. Then you can store it in your home directory.
+
+Requirements:
+- 3DS running sighax
+- boot9.bin in current directory (The entire one)
+- otp.bin in current directory
+
+just run ./genaeskeys.py and your aeskeydb.bin will contain most AES keys. You still have to require eshop 0x3D normal key yourself.

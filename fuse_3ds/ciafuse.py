@@ -11,11 +11,10 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 class CIA(LoggingMixIn, Operations):
     'Read only filesystem for CIA files.'
-    def __init__(self,fname,mount,ip):
-        self.ip=ip
+    def __init__(self,fname,mount):
         self.files={}
         self.f = open(fname,"rb")
-        self.cia = cia.CIA(self.f,ip)
+        self.cia = cia.CIA(self.f)
         self.fd = 0
         now = time()
         self.files["/"] = dict(st_mode=(S_IFDIR | 0o555), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2)
@@ -27,7 +26,6 @@ class CIA(LoggingMixIn, Operations):
             if no == 0:
                 ending=".cxi"
             self.files["/"+str(no)+ending]=dict(st_mode=(S_IFREG | 0o555),st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2, st_size=self.cia.tmd.contents[no]["size"], st_blocks=(self.cia.tmd.contents[no]["size"]+511)//512)
-            #self.files["/"+str(no)+"/"]=dict(st_mode=(S_IFDIR | 0o555),st_ctime=now,st_mtime=now, st_atime=now, st_nlink=2)
 
 
     def chmod(self,path,mode):
@@ -146,8 +144,8 @@ class CIA(LoggingMixIn, Operations):
     def release(self,path,fh):
         pass
 
-if len(argv) != 4:
-    print('usage: {name} <CIA> <mountpoint> <3DS IP>'.format(name=argv[0]))
+if len(argv) != 3:
+    print('usage: {name} <CIA> <mountpoint>'.format(name=argv[0]))
     exit(1)
 logging.basicConfig(level=logging.WARNING)
-fuse = FUSE(CIA(argv[1], argv[2], argv[3]),argv[2],foreground=False)
+fuse = FUSE(CIA(argv[1], argv[2]),argv[2],foreground=False)

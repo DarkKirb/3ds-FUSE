@@ -1,11 +1,12 @@
 import struct
+from os import path
 def binfilegen(f,s):
     x=f.read(s)
     while len(x) == s:
         yield x
         x=f.read(s)
 def seedwalk():
-    f = open("seeddb.bin","rb")
+    f = open(path.join(path.expanduser("~"),"seeddb.bin"),"rb")
     f.read(16)
     for s in binfilegen(f,32):
         tid=struct.unpack("<Q",s[:8])[0]

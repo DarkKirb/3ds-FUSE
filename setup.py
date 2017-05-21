@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from setuptools import setup
 setup(name="3ds-fuse",
-      version="0.1",
+      version="0.1.1",
       description="FUSE filesystems for different 3DS file types",
       author="Morten Delenk",
       author_email="morten@dark32.cf",

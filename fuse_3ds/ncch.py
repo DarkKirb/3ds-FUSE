@@ -1,10 +1,9 @@
 
 import struct
-from . import crypto
+from . import aeskeydb
 import hashlib
 class NCCH:
-    def __init__(self, f,ip):
-        self.ip=ip
+    def __init__(self, f):
         self.f=f
         header=self.f.read(512)
         self.header=header
@@ -24,6 +23,7 @@ class NCCH:
         self.cryptoFixkey=self.flags[7]&1
         self.nocrypto=self.flags[7]&0x4
         self.keyY=header[:16]
+        print(hex(self.flags[7]))
         self.doExHeader()
     def addCtr(self,ctr,val):
         c=int.from_bytes(ctr,byteorder="big")
@@ -71,7 +71,7 @@ class NCCH:
             if self.flags[7]&0x04: #Except when it's decrypted
                 decdata += data
             else:
-                decdata += crypto.cryptoBytestring(self.ip,data,0x6C,3,ctr,self.keyY)
+                decdata += aeskeydb.getCipher(0x2C,ctr, keyY=self.keyY).decrypt(data)
             if not sectors:
                 return decdata
             sectorno+=csectors
@@ -100,15 +100,15 @@ class NCCH:
         print(ctr)
         #Sectors are encrypted via multiple methods
         data=f.read(sectors*512)
-        keyslot = 0x6C
+        keyslot = 0x2C
         if self.flags[3] == 0x01:
-            keyslot = 0x65
+            keyslot = 0x25
         elif self.flags[3] == 0x0A:
-            keyslot = 0x58
+            keyslot = 0x18
         elif self.flags[3] == 0x0B:
-            keyslot = 0x5B
+            keyslot = 0x1B
         print(keyslot)
-        decdata += crypto.cryptoBytestring(self.ip,data,keyslot,3,ctr,self.keyY)
+        decdata += aeskeydb.getCipher(keyslot,ctr,keyY=self.keyY).decrypt(data)
         return decdata
 
     def doExHeader(self):
